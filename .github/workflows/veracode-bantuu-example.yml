@@ -1,0 +1,34 @@
+name: Security Scan (Veracode + Bantuu)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  veracode-baseline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and package application
+        run: |
+          # Exemplo: gere o artefato para o Veracode, por exemplo app.zip
+          zip -r app.zip .
+
+      - name: Bantuu Veracode Baseline
+        uses: Afrikatec-JuanCunhaa/bantuu-baseline@v1
+        env:
+          BANTUU_BASE_URL: ${{ secrets.BANTUU_BASE_URL }}
+        with:
+          bantuu_api_key: ${{ secrets.BANTUU_API_KEY }}
+          veracode_api_id: ${{ secrets.VERACODE_API_ID }}
+          veracode_api_key: ${{ secrets.VERACODE_API_KEY }}
+          scan_file: app.zip
+          policy_fail: 'false'
+          # Opcional: só será aplicado quando houver baseline
+          # fail_on_severity: 'Very High, High'
+
