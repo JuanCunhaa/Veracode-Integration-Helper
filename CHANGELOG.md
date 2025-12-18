@@ -10,6 +10,7 @@ O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.
 
 - Remover saídas de debug desnecessárias nos scripts da Action.
 - Padronizar a URL base do Bantuu para `https://www.bantuu.io`.
+- Atualizar README com seção de créditos para o mantenedor.
 
 ## [1.0.2] - 2025-12-12
 

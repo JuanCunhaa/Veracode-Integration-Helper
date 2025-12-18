@@ -93,3 +93,9 @@ jobs:
 - É responsabilidade do workflow gerar o arquivo indicado em `scan_file` antes da chamada.
 - O scan é executado via `veracode/Veracode-pipeline-scan-action@v1.0.20`.
 
+---
+
+## Créditos
+
+Esta Action foi criada e é mantida por [@JuanCunhaa](https://github.com/JuanCunhaa).
+

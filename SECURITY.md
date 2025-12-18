@@ -6,7 +6,7 @@ Esta Action segue versionamento semântico. Em geral, apenas a última versão `
 
 Versões suportadas:
 
-- `v1` (última tag `v1.x.x` publicada)
+- `v1` (última tag `v1.0.4` publicada)
 
 ## Reportando vulnerabilidades
 
