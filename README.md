@@ -56,7 +56,7 @@ O Upload & Scan sempre:
 - usa `appname = repository_full_name` (org/repo)
 - `createprofile: true`
 - nao espera a conclusao do scan na plataforma (`scantimeout: 0`)
-- flags fixas: `scanallnonfataltoplevelmodules: true`, `includenewmodules: true`, `deleteincompletescan: true`
+- flags fixas: `scanallnonfataltoplevelmodules: true`, `includenewmodules: true`, `deleteincompletescan: 2`
 - `version`: `Scan from Bantuu Actions: <repo_url> - <run_id>-<run_number>-<run_attempt>`
 - `sandboxname` (quando `veracode_sandbox='true'`): `{branch}-{org-repo}` (sanitizado e truncado)
 

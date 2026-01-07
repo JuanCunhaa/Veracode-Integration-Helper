@@ -8,6 +8,11 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 
 - N/A.
 
+## [1.0.14] - 2026-01-07
+
+### Changed
+- Upload & Scan: define `deleteincompletescan=2` para deletar scans incompletos independentemente do estado.
+
 ## [1.0.13] - 2026-01-07
 
 ### Changed

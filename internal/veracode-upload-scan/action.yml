@@ -68,5 +68,5 @@ runs:
         sandboxname: ${{ steps.vars.outputs.sandbox_name }}
         scanallnonfataltoplevelmodules: true
         includenewmodules: true
-        deleteincompletescan: true
+        deleteincompletescan: 2
         scantimeout: 0

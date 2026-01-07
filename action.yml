@@ -535,5 +535,5 @@ runs:
         sandboxname: ${{ steps.compute_upload_sandbox.outputs.sandbox_name }}
         scanallnonfataltoplevelmodules: true
         includenewmodules: true
-        deleteincompletescan: true
+        deleteincompletescan: 2
         scantimeout: 0
