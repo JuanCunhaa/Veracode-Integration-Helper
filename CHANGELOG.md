@@ -13,8 +13,7 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 ### Added
 
 - Link opcional do application profile a uma Business Unit (BU) via REST (HMAC), executado após o Upload & Scan.
-- Inputs: `enable_set_business_units`, `veracode_business_units`, `business_unit_pick_strategy`, `record_extra_business_units`.
-- Outputs: `set_bu_primary_name`, `set_bu_primary_guid`, `set_bu_status`, `set_bu_extras`.
+- Nota: a Veracode suporta apenas 1 BU por aplicação (se for informado mais de um valor, a action falha).
 
 ## [1.0.19] - 2026-01-07
 

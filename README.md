@@ -36,10 +36,8 @@ Todos os booleanos devem ser passados como string: `'true'` / `'false'`.
 | `enable_sca` | não | `'false'` | Ativa SCA. |
 | `veracode_sca_token` | não* | - | Obrigatório na prática quando `enable_sca: 'true'`. |
 | `enable_iac` | não | `'false'` | Ativa IaC/Secrets (directory scan). |
-| `enable_set_business_units` | não | `'false'` | Se `'true'`, vincula o app a uma Business Unit via REST (após Upload & Scan). |
-| `veracode_business_units` | não | `''` | Lista de BUs separadas por vírgula (ex.: `BU TI, BU MKT, ENEL`). |
-| `business_unit_pick_strategy` | não | `'first'` | `first` aplica a 1ª BU; `fail_if_multiple` falha se vier >1. |
-| `record_extra_business_units` | não | `'log'` | O que fazer com BUs extras (`log` \| `bantuu_metadata` \| `ignore`). |
+| `enable_set_business_unit` | não | `'false'` | Se `'true'`, vincula o app a UMA Business Unit via REST (após Upload & Scan). |
+| `veracode_business_unit` | não | `''` | Nome da BU (ex.: `BU TI`). Se contiver vírgula, a action falha. |
 
 ## Outputs
 
@@ -48,10 +46,9 @@ Todos os booleanos devem ser passados como string: `'true'` / `'false'`.
 | `has_baseline` | `'true'/'false'` indicando se existe baseline para o repo. |
 | `pipeline_status` | Um de: `scan_completed_with_baseline`, `scan_completed_without_baseline_and_uploaded`, `scan_completed_without_bantuu`, `pipeline_scan_disabled`. |
 | `repository_full_name` | `org/repo` (a partir de `github.repository`). |
-| `set_bu_primary_name` | Nome da BU primária aplicada. |
-| `set_bu_primary_guid` | GUID da BU primária aplicada. |
-| `set_bu_status` | `skipped` \| `success` \| `failed`. |
-| `set_bu_extras` | Lista JSON (string) com BUs extras normalizadas. |
+| `business_unit_name` | Nome da BU aplicada. |
+| `business_unit_guid` | GUID da BU aplicada. |
+| `set_business_unit_status` | `skipped` \| `success` \| `failed`. |
 
 ## Artefatos (sempre publicados quando o módulo roda)
 
@@ -63,8 +60,8 @@ Todos os booleanos devem ser passados como string: `'true'` / `'false'`.
 
 Para vincular o app (nome `org/repo`) a uma BU após o Upload & Scan:
 
-- Inputs: `enable_set_business_units`, `veracode_business_units`, `business_unit_pick_strategy`, `record_extra_business_units`
-- Limitação: o profile aceita apenas 1 BU; múltiplas entradas são tratadas pela strategy.
+- Inputs: `enable_set_business_unit`, `veracode_business_unit`
+- Nota: a Veracode permite apenas 1 BU por aplicação. Se for informado mais de um valor (ex.: com vírgula), a action falha.
 
 ## Upload & Scan (static) - comportamento fixo
 

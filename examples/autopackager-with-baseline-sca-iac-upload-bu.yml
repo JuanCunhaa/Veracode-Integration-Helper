@@ -29,8 +29,5 @@ jobs:
           enable_sca: 'true'
           veracode_sca_token: ${{ secrets.VERACODE_SCA_TOKEN }}
           enable_iac: 'true'
-          enable_set_business_units: 'true'
-          veracode_business_units: 'BU TI, BU MKT, ENEL'
-          business_unit_pick_strategy: 'first'
-          record_extra_business_units: 'log'
-
+          enable_set_business_unit: 'true'
+          veracode_business_unit: 'BU TI'

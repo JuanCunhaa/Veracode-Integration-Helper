@@ -65,14 +65,14 @@ inputs:
     description: 'Lista de Business Units (separadas por virgula), ex.: "BU TI, BU MKT, ENEL".'
     required: false
     default: ''
-  business_unit_pick_strategy:
-    description: 'Como tratar multiplas BUs (first | fail_if_multiple).'
+  enable_set_business_unit:
+    description: 'Ativa/desativa o vinculo automatico do app a UMA Business Unit via REST (true/false).'
     required: false
-    default: 'first'
-  record_extra_business_units:
-    description: 'O que fazer com BUs extras (log | bantuu_metadata | ignore).'
+    default: 'false'
+  veracode_business_unit:
+    description: 'Nome da Business Unit unica a ser atribuida ao app (ex.: "BU TI").'
     required: false
-    default: 'log'
+    default: ''
 
 outputs:
   has_baseline:
@@ -97,6 +97,15 @@ outputs:
   set_bu_extras:
     description: 'BUs extras normalizadas (JSON array em string).'
     value: ${{ steps.set_business_unit.outputs.set_bu_extras || '[]' }}
+  business_unit_name:
+    description: 'Nome da Business Unit aplicada (alias).'
+    value: ${{ steps.set_business_unit.outputs.business_unit_name || '' }}
+  business_unit_guid:
+    description: 'GUID da Business Unit aplicada (alias).'
+    value: ${{ steps.set_business_unit.outputs.business_unit_guid || '' }}
+  set_business_unit_status:
+    description: 'Status do passo de vinculo de BU (success | skipped | failed).'
+    value: ${{ steps.set_business_unit.outputs.set_business_unit_status || 'skipped' }}
 
 runs:
   using: 'composite'
@@ -581,13 +590,13 @@ runs:
 
     - name: Set Veracode Business Unit (REST)
       id: set_business_unit
-      if: inputs.enable_set_business_units == 'true'
+      if: inputs.enable_set_business_unit == 'true' || inputs.enable_set_business_units == 'true'
       shell: bash
       env:
+        ENABLE_SET_BUSINESS_UNIT: ${{ inputs.enable_set_business_unit }}
+        VERACODE_BUSINESS_UNIT: ${{ inputs.veracode_business_unit }}
         ENABLE_SET_BUSINESS_UNITS: ${{ inputs.enable_set_business_units }}
         VERACODE_BUSINESS_UNITS: ${{ inputs.veracode_business_units }}
-        BUSINESS_UNIT_PICK_STRATEGY: ${{ inputs.business_unit_pick_strategy }}
-        RECORD_EXTRA_BUSINESS_UNITS: ${{ inputs.record_extra_business_units }}
         VERACODE_API_ID: ${{ inputs.veracode_api_id }}
         VERACODE_API_KEY: ${{ inputs.veracode_api_key }}
         VERACODE_API_HOST: api.veracode.com

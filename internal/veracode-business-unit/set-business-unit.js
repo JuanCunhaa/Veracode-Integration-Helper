@@ -23,14 +23,6 @@ function normalizeSpaces(value) {
   return value.replace(/\s+/g, " ").trim();
 }
 
-function parseBusinessUnits(raw) {
-  if (!raw) return [];
-  return raw
-    .split(",")
-    .map((part) => normalizeSpaces(part))
-    .filter((part) => part.length > 0);
-}
-
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -224,10 +216,14 @@ async function findBusinessUnitGuidByName({ apiId, apiKeyHex, host, buName }) {
 }
 
 async function main() {
-  const enable = (process.env.ENABLE_SET_BUSINESS_UNITS || "false").toLowerCase() === "true";
-  const rawBusinessUnits = process.env.VERACODE_BUSINESS_UNITS || "";
-  const pickStrategy = (process.env.BUSINESS_UNIT_PICK_STRATEGY || "first").toLowerCase();
-  const recordExtras = (process.env.RECORD_EXTRA_BUSINESS_UNITS || "log").toLowerCase();
+  const enable =
+    (process.env.ENABLE_SET_BUSINESS_UNIT || "false").toLowerCase() === "true" ||
+    (process.env.ENABLE_SET_BUSINESS_UNITS || "false").toLowerCase() === "true";
+
+  const rawBusinessUnit =
+    process.env.VERACODE_BUSINESS_UNIT ||
+    process.env.VERACODE_BUSINESS_UNITS ||
+    "";
 
   const apiId = process.env.VERACODE_API_ID || "";
   const apiKeyHex = process.env.VERACODE_API_KEY || "";
@@ -236,6 +232,10 @@ async function main() {
 
   const uploadEnabled = (process.env.ENABLE_UPLOAD_SCAN || "false").toLowerCase() === "true";
   const uploadOutcome = process.env.UPLOAD_AND_SCAN_OUTCOME || "skipped";
+
+  setOutput("set_business_unit_status", "skipped");
+  setOutput("business_unit_name", "");
+  setOutput("business_unit_guid", "");
 
   setOutput("set_bu_status", "skipped");
   setOutput("set_bu_primary_name", "");
@@ -248,8 +248,10 @@ async function main() {
 
   logGroupStart("Veracode Business Unit (REST)");
 
-  if (!rawBusinessUnits.trim()) {
-    warning("enable_set_business_units=true, mas veracode_business_units esta vazio. Pulando.");
+  const businessUnit = normalizeSpaces(rawBusinessUnit || "");
+
+  if (!businessUnit) {
+    warning("enable_set_business_unit=true, mas veracode_business_unit esta vazio. Pulando.");
     logGroupEnd();
     return;
   }
@@ -268,69 +270,54 @@ async function main() {
     throw new Error("ERRO: app name vazio (VERACODE_APP_NAME).");
   }
 
-  if (uploadEnabled && uploadOutcome !== "success") {
+  if (!uploadEnabled) {
+    logGroupEnd();
+    throw new Error(
+      "enable_set_business_unit=true exige enable_upload_scan=true, pois o vinculo deve rodar somente apos o Upload & Scan (createprofile=true).",
+    );
+  }
+
+  if (uploadOutcome !== "success") {
     logGroupEnd();
     throw new Error(
       `Upload & Scan esta habilitado, mas nao concluiu com sucesso (outcome=${uploadOutcome}). Nao e seguro aplicar Business Unit.`,
     );
   }
 
-  const businessUnits = parseBusinessUnits(rawBusinessUnits);
-  if (businessUnits.length === 0) {
-    warning("Nenhuma Business Unit valida foi encontrada apos parsing. Pulando.");
+  if (businessUnit.includes(",")) {
+    setOutput("set_business_unit_status", "failed");
+    setOutput("set_bu_status", "failed");
+    logGroupEnd();
+    throw new Error("Veracode permite apenas uma Business Unit por aplicacao. Informe apenas uma BU.");
+  }
+
+  if (businessUnit.length === 0) {
+    warning("Nenhuma Business Unit valida foi encontrada apos normalizacao. Pulando.");
     logGroupEnd();
     return;
   }
 
-  if (pickStrategy !== "first" && pickStrategy !== "fail_if_multiple") {
-    logGroupEnd();
-    throw new Error("business_unit_pick_strategy invalida. Use: first | fail_if_multiple.");
-  }
+  setOutput("business_unit_name", businessUnit);
+  setOutput("set_bu_primary_name", businessUnit);
+  setOutput("set_bu_extras", "[]");
 
-  if (pickStrategy === "fail_if_multiple" && businessUnits.length > 1) {
-    setOutput("set_bu_extras", JSON.stringify(businessUnits.slice(1)));
-    setOutput("set_bu_primary_name", businessUnits[0]);
-    setOutput("set_bu_status", "failed");
-    logGroupEnd();
-    throw new Error(
-      `Foram informadas ${businessUnits.length} BUs, mas o profile suporta apenas 1. Envie somente 1 BU ou use business_unit_pick_strategy=first.`,
-    );
-  }
-
-  const primaryName = businessUnits[0];
-  const extras = businessUnits.slice(1);
-
-  setOutput("set_bu_primary_name", primaryName);
-  setOutput("set_bu_extras", JSON.stringify(extras));
-
-  if (extras.length > 0) {
-    if (recordExtras === "log") {
-      warning(`Foram informadas BUs extras (serao ignoradas no profile): ${extras.join(", ")}`);
-    } else if (recordExtras === "ignore") {
-      // intentionally no-op
-    } else if (recordExtras === "bantuu_metadata") {
-      warning("record_extra_business_units=bantuu_metadata: apenas registrando no output set_bu_extras (nenhuma chamada ao Bantuu).");
-    } else {
-      warning("record_extra_business_units invalido; usando 'log'.");
-      warning(`BUs extras: ${extras.join(", ")}`);
-    }
-  }
-
-  process.stdout.write(`App (nome): ${appName}\n`);
-  process.stdout.write(`BU primaria: ${primaryName}\n`);
+  process.stdout.write(`Setting Business Unit '${businessUnit}' for application '${appName}'\n`);
   process.stdout.write(`Host: ${host}\n`);
 
-  const buGuid = await findBusinessUnitGuidByName({ apiId, apiKeyHex, host, buName: primaryName });
+  const buGuid = await findBusinessUnitGuidByName({ apiId, apiKeyHex, host, buName: businessUnit });
   if (!buGuid) {
+    setOutput("set_business_unit_status", "failed");
     setOutput("set_bu_status", "failed");
     logGroupEnd();
-    throw new Error(`BU '${primaryName}' nao existe ou nao foi localizada via Identity API.`);
+    throw new Error(`BU '${businessUnit}' nao existe ou nao foi localizada via Identity API.`);
   }
+  setOutput("business_unit_guid", buGuid);
   setOutput("set_bu_primary_guid", buGuid);
-  process.stdout.write(`BU GUID: ${buGuid}\n`);
+  process.stdout.write(`Business Unit GUID resolved: ${buGuid}\n`);
 
   const appGuid = await findAppGuidByName({ apiId, apiKeyHex, host, appName });
   if (!appGuid) {
+    setOutput("set_business_unit_status", "failed");
     setOutput("set_bu_status", "failed");
     logGroupEnd();
     throw new Error(
@@ -381,13 +368,15 @@ async function main() {
     body: updatedApp,
   });
 
+  setOutput("set_business_unit_status", "success");
   setOutput("set_bu_status", "success");
-  process.stdout.write("Business Unit aplicada com sucesso.\n");
+  process.stdout.write("Application profile updated successfully\n");
   logGroupEnd();
 }
 
 main().catch((err) => {
   if (process.env.GITHUB_OUTPUT) {
+    setOutput("set_business_unit_status", "failed");
     setOutput("set_bu_status", "failed");
   }
   process.stderr.write(`${err?.message || String(err)}\n`);
