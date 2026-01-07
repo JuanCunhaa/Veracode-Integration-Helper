@@ -467,59 +467,6 @@ runs:
 
         echo "sandbox_name=${sandbox_name}" >> "$GITHUB_OUTPUT"
 
-    - name: Show SCA/IaC logs
-      id: show_background_logs
-      if: ${{ always() }}
-      shell: bash
-      run: |
-        set -euo pipefail
-
-        wait_for_pid() {
-          local pid_file="$1"
-          local timeout_seconds="${2:-20}"
-
-          if [ ! -f "${pid_file}" ]; then
-            return 0
-          fi
-
-          local pid
-          pid="$(cat "${pid_file}" 2>/dev/null || true)"
-          if [ -z "${pid}" ]; then
-            return 0
-          fi
-
-          if kill -0 "${pid}" 2>/dev/null; then
-            echo "Background process ${pid} ainda em execucao; aguardando ate ${timeout_seconds}s para finalizar..."
-            timeout "${timeout_seconds}" bash -lc "while kill -0 '${pid}' 2>/dev/null; do sleep 1; done" || true
-          fi
-        }
-
-        show_tail() {
-          local title="$1"
-          local log_file="$2"
-          local pid_file="$3"
-
-          echo ""
-          echo "==================== ${title} ===================="
-          if [ ! -f "${log_file}" ]; then
-            echo "Log nao encontrado: ${log_file}"
-            return 0
-          fi
-
-          wait_for_pid "${pid_file}" 20
-
-          echo "---- tail (${log_file}) ----"
-          tail -n 200 "${log_file}" || true
-        }
-
-        if [ "${{ inputs.enable_sca }}" = "true" ]; then
-          show_tail "Veracode SCA (background)" "veracode_sca.log" "veracode_sca.pid"
-        fi
-
-        if [ "${{ inputs.enable_iac }}" = "true" ]; then
-          show_tail "Veracode IaC (background)" "veracode_iac.log" "veracode_iac.pid"
-        fi
-
     - name: Veracode Upload & Scan (static)
       id: upload_and_scan
       if: inputs.enable_upload_scan == 'true'
@@ -537,3 +484,72 @@ runs:
         includenewmodules: true
         deleteincompletescan: 2
         scantimeout: 0
+
+    - name: Show SCA/IaC logs (console)
+      id: show_background_logs
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        wait_until_done_or_timeout() {
+          local pid_file="$1"
+          local timeout_seconds="${2:-120}"
+
+          if [ ! -f "${pid_file}" ]; then
+            return 0
+          fi
+
+          local pid
+          pid="$(cat "${pid_file}" 2>/dev/null || true)"
+          if [ -z "${pid}" ]; then
+            return 0
+          fi
+
+          if ! kill -0 "${pid}" 2>/dev/null; then
+            return 0
+          fi
+
+          echo "Background process ${pid} ainda em execucao; aguardando ate ${timeout_seconds}s..."
+          local start
+          start="$(date +%s)"
+          while kill -0 "${pid}" 2>/dev/null; do
+            local now elapsed
+            now="$(date +%s)"
+            elapsed=$((now - start))
+            if [ "${elapsed}" -ge "${timeout_seconds}" ]; then
+              echo "Timeout atingido (${timeout_seconds}s). Continuando sem esperar finalizar."
+              break
+            fi
+            sleep 2
+          done
+        }
+
+        show_log() {
+          local title="$1"
+          local log_file="$2"
+          local pid_file="$3"
+
+          echo ""
+          echo "==================== ${title} ===================="
+
+          if [ -f "${pid_file}" ]; then
+            wait_until_done_or_timeout "${pid_file}" 180
+          fi
+
+          if [ ! -f "${log_file}" ]; then
+            echo "Log nao encontrado: ${log_file}"
+            return 0
+          fi
+
+          echo "---- tail (${log_file}) ----"
+          tail -n 300 "${log_file}" || true
+        }
+
+        if [ -f "veracode_sca.log" ] || [ "${{ inputs.enable_sca }}" = "true" ]; then
+          show_log "Veracode SCA" "veracode_sca.log" "veracode_sca.pid"
+        fi
+
+        if [ -f "veracode_iac.log" ] || [ "${{ inputs.enable_iac }}" = "true" ]; then
+          show_log "Veracode IaC" "veracode_iac.log" "veracode_iac.pid"
+        fi

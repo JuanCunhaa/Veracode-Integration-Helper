@@ -8,6 +8,11 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 
 - N/A.
 
+## [1.0.15] - 2026-01-07
+
+### Fixed
+- SCA/IaC: move a impressao dos logs para o ultimo step da action (imprime no console mesmo quando Upload & Scan roda depois).
+
 ## [1.0.14] - 2026-01-07
 
 ### Changed
