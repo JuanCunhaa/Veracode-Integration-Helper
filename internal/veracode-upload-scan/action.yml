@@ -8,10 +8,9 @@ inputs:
   veracode_api_key:
     description: 'Key da API do Veracode (VKEY).'
     required: true
-  veracode_appname:
-    description: 'Nome do aplicativo no Veracode (default: org/repo do GitHub).'
-    required: false
-    default: '${{ github.repository }}'
+  repository_full_name:
+    description: 'Repositório org/repo usado como appname no Veracode.'
+    required: true
   veracode_sandbox:
     description: 'Define se o Upload & Scan deve usar sandbox (true) ou o app principal (false).'
     required: false
@@ -19,29 +18,55 @@ inputs:
   filepath:
     description: 'Caminho do arquivo .zip a ser enviado para o Veracode (mesmo artefato do Pipeline Scan).'
     required: true
-  scantimeout:
-    description: 'Tempo, em minutos, para aguardar o resultado do scan. Use 0 para disparar o scan sem aguardar a conclusão.'
-    required: false
-    default: '0'
 
 runs:
   using: 'composite'
   steps:
+    - name: Compute sandbox name
+      id: vars
+      shell: bash
+      env:
+        ENABLE_SANDBOX: ${{ inputs.veracode_sandbox }}
+        REPOSITORY_FULL_NAME: ${{ inputs.repository_full_name }}
+        HEAD_REF: ${{ github.head_ref }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        set -euo pipefail
+
+        branch="${HEAD_REF:-$REF_NAME}"
+        if [ -z "${branch}" ]; then
+          branch="unknown"
+        fi
+
+        sanitize() {
+          printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9._-]+/-/g; s/^-+|-+$//g; s/-+/-/g'
+        }
+
+        branch_s="$(sanitize "${branch}")"
+        repo_s="$(sanitize "${REPOSITORY_FULL_NAME}")"
+
+        sandbox_name="${branch_s}-${repo_s}"
+        sandbox_name="$(printf '%s' "${sandbox_name}" | cut -c1-80)"
+
+        if [ "${ENABLE_SANDBOX}" != "true" ]; then
+          sandbox_name=""
+        fi
+
+        echo "sandbox_name=${sandbox_name}" >> "$GITHUB_OUTPUT"
+
     - name: Veracode Upload & Scan
       id: upload_and_scan
       uses: veracode/veracode-uploadandscan-action@master
       with:
-        appname: ${{ inputs.veracode_appname }}
+        appname: ${{ inputs.repository_full_name }}
         createprofile: true
         filepath: ${{ inputs.filepath }}
-        version: 'Scan from GitHub job: ${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}'
+        version: 'Scan from Bantuu Actions: ${{ github.server_url }}/${{ inputs.repository_full_name }} - ${{ github.run_id }}-${{ github.run_number }}-${{ github.run_attempt }}'
         vid: ${{ inputs.veracode_api_id }}
         vkey: ${{ inputs.veracode_api_key }}
         createsandbox: ${{ inputs.veracode_sandbox }}
-        sandboxname: ${{ github.repository }}-sandbox
+        sandboxname: ${{ steps.vars.outputs.sandbox_name }}
         scanallnonfataltoplevelmodules: true
         includenewmodules: true
         deleteincompletescan: true
-        scantimeout: ${{ inputs.scantimeout }}
-        scanpollinginterval: 120
-        maxretrycount: 5
+        scantimeout: 0

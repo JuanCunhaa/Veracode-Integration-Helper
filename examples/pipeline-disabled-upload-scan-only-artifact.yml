@@ -1,0 +1,32 @@
+name: Security Scan (Pipeline Disabled + Upload Only - Artifact)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install zip
+        run: sudo apt-get update -y && sudo apt-get install -y zip
+
+      - name: Build and package application
+        run: |
+          zip -r app.zip .
+
+      - name: Upload & Scan only (artifact)
+        uses: Afrikatec-JuanCunhaa/bantuu-baseline@v1
+        with:
+          veracode_api_id: ${{ secrets.VERACODE_API_ID }}
+          veracode_api_key: ${{ secrets.VERACODE_API_KEY }}
+          enable_pipelinescan: 'false'
+          enable_baseline: 'false'
+          enable_upload_scan: 'true'
+          veracode_sandbox: 'true'
+          enable_auto_packager: 'false'
+          scan_file: app.zip
+

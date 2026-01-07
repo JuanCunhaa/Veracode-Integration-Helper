@@ -42,10 +42,6 @@ inputs:
   veracode_api_key:
     description: 'Key da API do Veracode.'
     required: true
-  veracode_appname:
-    description: 'Nome do aplicativo no Veracode. Default: org/repo do GitHub.'
-    required: false
-    default: '${{ github.repository }}'
   veracode_sandbox:
     description: 'Define se o Upload & Scan deve usar sandbox (true) ou o app principal (false).'
     required: false
@@ -140,6 +136,6 @@ runs:
       with:
         veracode_api_id: ${{ inputs.veracode_api_id }}
         veracode_api_key: ${{ inputs.veracode_api_key }}
-        veracode_appname: ${{ inputs.veracode_appname || steps.resolve_repo.outputs.repository_full_name }}
+        repository_full_name: ${{ steps.resolve_repo.outputs.repository_full_name }}
         veracode_sandbox: ${{ inputs.veracode_sandbox }}
         filepath: ${{ steps.prepare_scan_file.outputs.scan_file }}

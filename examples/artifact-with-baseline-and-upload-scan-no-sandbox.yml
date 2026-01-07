@@ -1,0 +1,37 @@
+name: Security Scan (Artifact + Baseline + Upload & Scan - No Sandbox)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install zip
+        run: sudo apt-get update -y && sudo apt-get install -y zip
+
+      - name: Build and package application
+        run: |
+          zip -r app.zip .
+
+      - name: Bantuu Veracode Baseline (artifact + baseline + upload, app principal)
+        uses: Afrikatec-JuanCunhaa/bantuu-baseline@v1
+        with:
+          bantuu_api_key: ${{ secrets.BANTUU_API_KEY }}
+          veracode_api_id: ${{ secrets.VERACODE_API_ID }}
+          veracode_api_key: ${{ secrets.VERACODE_API_KEY }}
+          scan_file: app.zip
+          enable_auto_packager: 'false'
+          enable_baseline: 'true'
+          enable_upload_scan: 'true'
+          veracode_sandbox: 'false'
+          policy_fail: 'false'
+
