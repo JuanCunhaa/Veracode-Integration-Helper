@@ -8,6 +8,11 @@ O formato e baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0
 
 - N/A.
 
+## [1.0.9] - 2026-01-07
+
+### Fixed
+- Auto Packager/IaC: corrige `veracode: command not found` apos instalar a Veracode CLI (detecta `veracode` no workspace e adiciona ao PATH).
+
 ## [1.0.8] - 2026-01-07
 
 ### Fixed
