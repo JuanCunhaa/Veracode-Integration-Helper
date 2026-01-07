@@ -36,6 +36,10 @@ Todos os booleanos devem ser passados como string: `'true'` / `'false'`.
 | `enable_sca` | não | `'false'` | Ativa SCA. |
 | `veracode_sca_token` | não* | - | Obrigatório na prática quando `enable_sca: 'true'`. |
 | `enable_iac` | não | `'false'` | Ativa IaC/Secrets (directory scan). |
+| `enable_set_business_units` | não | `'false'` | Se `'true'`, vincula o app a uma Business Unit via REST (após Upload & Scan). |
+| `veracode_business_units` | não | `''` | Lista de BUs separadas por vírgula (ex.: `BU TI, BU MKT, ENEL`). |
+| `business_unit_pick_strategy` | não | `'first'` | `first` aplica a 1ª BU; `fail_if_multiple` falha se vier >1. |
+| `record_extra_business_units` | não | `'log'` | O que fazer com BUs extras (`log` \| `bantuu_metadata` \| `ignore`). |
 
 ## Outputs
 
@@ -44,12 +48,23 @@ Todos os booleanos devem ser passados como string: `'true'` / `'false'`.
 | `has_baseline` | `'true'/'false'` indicando se existe baseline para o repo. |
 | `pipeline_status` | Um de: `scan_completed_with_baseline`, `scan_completed_without_baseline_and_uploaded`, `scan_completed_without_bantuu`, `pipeline_scan_disabled`. |
 | `repository_full_name` | `org/repo` (a partir de `github.repository`). |
+| `set_bu_primary_name` | Nome da BU primária aplicada. |
+| `set_bu_primary_guid` | GUID da BU primária aplicada. |
+| `set_bu_status` | `skipped` \| `success` \| `failed`. |
+| `set_bu_extras` | Lista JSON (string) com BUs extras normalizadas. |
 
 ## Artefatos (sempre publicados quando o módulo roda)
 
 - `sca-results`: `veracode_sca.log`
 - `iac-results`: pasta `iac-results/` com `results.json`, `results.txt` e SBOMs (se gerados)
 - `pipescan-results`: `results.json` e `filtered_results.json` (se existir)
+
+## Business Unit (opcional)
+
+Para vincular o app (nome `org/repo`) a uma BU após o Upload & Scan:
+
+- Inputs: `enable_set_business_units`, `veracode_business_units`, `business_unit_pick_strategy`, `record_extra_business_units`
+- Limitação: o profile aceita apenas 1 BU; múltiplas entradas são tratadas pela strategy.
 
 ## Upload & Scan (static) - comportamento fixo
 
@@ -67,6 +82,7 @@ Escolha um exemplo e copie para `.github/workflows/`.
 ### Mais completo (para testar tudo)
 
 - SCA + IaC + Auto Packager + Baseline + Upload & Scan → [abrir](examples/autopackager-with-baseline-sca-iac-upload.yml)
+- SCA + IaC + Auto Packager + Baseline + Upload & Scan + Business Unit → [abrir](examples/autopackager-with-baseline-sca-iac-upload-bu.yml)
 
 ### Autopackager (gera o `.zip` automaticamente)
 

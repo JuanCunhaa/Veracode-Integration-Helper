@@ -57,6 +57,23 @@ inputs:
     description: 'Severidades que fazem o scan falhar quando há baseline (ex.: "Very High, High").'
     required: false
 
+  enable_set_business_units:
+    description: 'Ativa/desativa o vinculo automatico do app a uma Business Unit via REST (true/false).'
+    required: false
+    default: 'false'
+  veracode_business_units:
+    description: 'Lista de Business Units (separadas por virgula), ex.: "BU TI, BU MKT, ENEL".'
+    required: false
+    default: ''
+  business_unit_pick_strategy:
+    description: 'Como tratar multiplas BUs (first | fail_if_multiple).'
+    required: false
+    default: 'first'
+  record_extra_business_units:
+    description: 'O que fazer com BUs extras (log | bantuu_metadata | ignore).'
+    required: false
+    default: 'log'
+
 outputs:
   has_baseline:
     description: 'true/false indicando se o Bantuu possui baseline para o repositório.'
@@ -67,6 +84,19 @@ outputs:
   repository_full_name:
     description: 'Repositório org/repo usado para consultar e enviar baseline ao Bantuu.'
     value: ${{ steps.resolve_repo.outputs.repository_full_name }}
+
+  set_bu_primary_name:
+    description: 'Nome da BU primaria aplicada ao app.'
+    value: ${{ steps.set_business_unit.outputs.set_bu_primary_name || '' }}
+  set_bu_primary_guid:
+    description: 'GUID da BU primaria aplicada ao app.'
+    value: ${{ steps.set_business_unit.outputs.set_bu_primary_guid || '' }}
+  set_bu_status:
+    description: 'Status do passo de vinculo de BU (skipped | success | failed).'
+    value: ${{ steps.set_business_unit.outputs.set_bu_status || 'skipped' }}
+  set_bu_extras:
+    description: 'BUs extras normalizadas (JSON array em string).'
+    value: ${{ steps.set_business_unit.outputs.set_bu_extras || '[]' }}
 
 runs:
   using: 'composite'
@@ -548,3 +578,22 @@ runs:
         includenewmodules: true
         deleteincompletescan: 2
         scantimeout: 0
+
+    - name: Set Veracode Business Unit (REST)
+      id: set_business_unit
+      if: inputs.enable_set_business_units == 'true'
+      shell: bash
+      env:
+        ENABLE_SET_BUSINESS_UNITS: ${{ inputs.enable_set_business_units }}
+        VERACODE_BUSINESS_UNITS: ${{ inputs.veracode_business_units }}
+        BUSINESS_UNIT_PICK_STRATEGY: ${{ inputs.business_unit_pick_strategy }}
+        RECORD_EXTRA_BUSINESS_UNITS: ${{ inputs.record_extra_business_units }}
+        VERACODE_API_ID: ${{ inputs.veracode_api_id }}
+        VERACODE_API_KEY: ${{ inputs.veracode_api_key }}
+        VERACODE_API_HOST: api.veracode.com
+        VERACODE_APP_NAME: ${{ steps.resolve_repo.outputs.repository_full_name }}
+        ENABLE_UPLOAD_SCAN: ${{ inputs.enable_upload_scan }}
+        UPLOAD_AND_SCAN_OUTCOME: ${{ steps.upload_and_scan.outcome }}
+      run: |
+        set -euo pipefail
+        node "$GITHUB_ACTION_PATH/internal/veracode-business-unit/set-business-unit.js"
